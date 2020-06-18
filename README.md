@@ -1,3 +1,3 @@
-![github-projector](https://i.imgur.com/Ga16MlW.png)
+![github-projector](https://i.imgur.com/T0Z3qWL.png)
 # projector
 A github bot for managing projects.
