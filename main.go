@@ -9,14 +9,30 @@ import (
 	"golang.org/x/oauth2"
 )
 
-var hookConfig map[string]interface{}
-
 // createHook creates an organization hook to monitor Issues & PRs
 func createHook(ctx context.Context, org string, client *github.Client) {
+	log.Println("Creating Org Hook...")
+	// hookName := viper.GetString("hook_name")
+	hookEvents := []string{"pull_request", "issues"}
+	hookURL := viper.GetString("hook_url")
+	hookConfig := map[string]interface{}{
+		"url":          hookURL,
+		"content_type": "json",
+	}
 	hookOptions := &github.Hook{
+		Events: hookEvents,
 		Config: hookConfig,
 	}
-	client.Organizations.CreateHook(ctx, org, hookOptions)
+	hook, rsp, err := client.Organizations.CreateHook(ctx, org, hookOptions)
+	if err != nil {
+
+	}
+	if rsp.StatusCode == 404 {
+		log.Fatal("Unauthorized..Increase Token Scope")
+	} else {
+		log.Fatal("Unable to create Org Hook:", err)
+	}
+	log.Println("hook:", hook.ID)
 }
 
 func main() {
@@ -54,10 +70,10 @@ func main() {
 	//****************************************************************************
 	// list all org hooks
 	//****************************************************************************
-	hooks, hookStatus, err := client.Organizations.ListHooks(ctx, org, nil)
+	hooks, rsp, err := client.Organizations.ListHooks(ctx, org, nil)
 	if err != nil {
 		// check if hooks exist
-		if hookStatus.StatusCode == 404 {
+		if rsp.StatusCode == 404 {
 			log.Println("No Org Hooks Found")
 			createHook(ctx, org, client)
 		} else {
