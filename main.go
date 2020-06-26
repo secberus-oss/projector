@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v32/github"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -24,16 +25,17 @@ func createHook(ctx context.Context, org string, client *github.Client) {
 		Config: hookConfig,
 	}
 	hook, rsp, err := client.Organizations.CreateHook(ctx, org, hookOptions)
-	if err != nil {
-
-	}
 	if rsp.StatusCode == 404 {
-		log.Fatal("Unauthorized..Increase Token Scope")
-	} else {
+		log.Println("Unauthorized..Increase Token Scope")
+		return
+	}
+	if err != nil {
 		log.Fatal("Unable to create Org Hook:", err)
 	}
 	log.Println("hook:", hook.ID)
 }
+
+// func recieveWebHook(){}
 
 func main() {
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
@@ -84,4 +86,17 @@ func main() {
 	for _, h := range hooks {
 		log.Println("hook:", *h.ID)
 	}
+	r := gin.Default()
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+	r.POST("/label", func(c *gin.Context) {
+		// recieveWebHook()
+		c.JSON(200, gin.H{
+			"status": "ok",
+		})
+	})
+	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
