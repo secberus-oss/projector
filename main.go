@@ -9,6 +9,16 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var hookConfig map[string]interface{}
+
+// createHook creates an organization hook to monitor Issues & PRs
+func createHook(ctx context.Context, org string, client *github.Client) {
+	hookOptions := &github.Hook{
+		Config: hookConfig,
+	}
+	client.Organizations.CreateHook(ctx, org, hookOptions)
+}
+
 func main() {
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
 	viper.AutomaticEnv()
@@ -42,4 +52,20 @@ func main() {
 		log.Println("repo:", *p.Name)
 	}
 	//****************************************************************************
+	// list all org hooks
+	//****************************************************************************
+	hooks, hookStatus, err := client.Organizations.ListHooks(ctx, org, nil)
+	if err != nil {
+		// check if hooks exist
+		if hookStatus.StatusCode == 404 {
+			log.Println("No Org Hooks Found")
+			createHook(ctx, org, client)
+		} else {
+			log.Fatal("Unable to List Hooks in Org:", org, err)
+		}
+	}
+	// list hooks
+	for _, h := range hooks {
+		log.Println("hook:", *h.ID)
+	}
 }
