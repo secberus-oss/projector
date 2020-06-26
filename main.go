@@ -11,7 +11,8 @@ import (
 
 func main() {
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
-	viper.BindEnv("github_token")
+	viper.AutomaticEnv()
+	org := viper.GetString("org_name")
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
 		&oauth2.Token{AccessToken: viper.GetString("github_token")},
@@ -19,13 +20,26 @@ func main() {
 	tc := oauth2.NewClient(ctx, ts)
 
 	client := github.NewClient(tc)
-
-	// list all repositories for the authenticated user
-	repos, _, err := client.Repositories.List(ctx, "", nil)
+	//****************************************************************************
+	// list all repositories
+	//****************************************************************************
+	repos, _, err := client.Repositories.ListByOrg(ctx, org, nil)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("Unable to List Repos in Org:", org, err)
 	}
 	for _, r := range repos {
-		log.Printf(*r.Name)
+		log.Println("repo:", *r.Name)
 	}
+	//****************************************************************************
+	// list all projects
+	//****************************************************************************
+	projectOptions := &github.ProjectListOptions{State: "open"}
+	projects, _, err := client.Organizations.ListProjects(ctx, org, projectOptions)
+	if err != nil {
+		log.Fatal("Unable to List Projects in Org:", org, err)
+	}
+	for _, p := range projects {
+		log.Println("repo:", *p.Name)
+	}
+	//****************************************************************************
 }
