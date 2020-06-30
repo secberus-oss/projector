@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v32/github"
@@ -10,12 +11,13 @@ import (
 	"golang.org/x/oauth2"
 )
 
+var hookURL string
+
 // createHook creates an organization hook to monitor Issues & PRs
 func createHook(ctx context.Context, org string, client *github.Client) {
 	log.Println("Creating Org Hook...")
 	// hookName := viper.GetString("hook_name")
 	hookEvents := []string{"pull_request", "issues"}
-	hookURL := viper.GetString("hook_url")
 	hookConfig := map[string]interface{}{
 		"url":          hookURL,
 		"content_type": "json",
@@ -26,20 +28,36 @@ func createHook(ctx context.Context, org string, client *github.Client) {
 	}
 	hook, rsp, err := client.Organizations.CreateHook(ctx, org, hookOptions)
 	if rsp.StatusCode == 404 {
-		log.Println("Unauthorized..Increase Token Scope")
+		log.Println("Unauthorized...Increase Token Scope")
 		return
 	}
 	if err != nil {
 		log.Fatal("Unable to create Org Hook:", err)
 	}
-	log.Println("hook:", hook.ID)
+	log.Println("hook:", hook)
 }
 
-// func recieveWebHook(){}
+func hookExists(h github.Hook) bool {
+	log.Println("checking if", hookURL, "already created in", h)
+	if hookURL == h.Config["url"].(string) {
+		return true
+	}
+	return false
+}
+
+func processPullRequestEvent(c *gin.Context) github.PullRequestEvent {
+	var json github.PullRequestEvent
+	if err := c.ShouldBindJSON(&json); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return github.PullRequestEvent{}
+	}
+	return json
+}
 
 func main() {
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
 	viper.AutomaticEnv()
+	hookURL = viper.GetString("hook_url")
 	org := viper.GetString("org_name")
 	ctx := context.Background()
 	ts := oauth2.StaticTokenSource(
@@ -67,35 +85,46 @@ func main() {
 		log.Fatal("Unable to List Projects in Org:", org, err)
 	}
 	for _, p := range projects {
-		log.Println("repo:", *p.Name)
+		log.Println("project:", *p.Name)
 	}
 	//****************************************************************************
 	// list all org hooks
 	//****************************************************************************
-	hooks, rsp, err := client.Organizations.ListHooks(ctx, org, nil)
+	hooks, _, err := client.Organizations.ListHooks(ctx, org, nil)
 	if err != nil {
-		// check if hooks exist
-		if rsp.StatusCode == 404 {
-			log.Println("No Org Hooks Found")
-			createHook(ctx, org, client)
-		} else {
-			log.Fatal("Unable to List Hooks in Org:", org, err)
+		log.Fatal("Unable to List Hooks in Org:", org, err)
+	} else if len(hooks) > 0 {
+		for _, h := range hooks {
+			log.Println("hook:", *h)
+			if hookExists(*h) {
+				log.Println("Hook already created, skipping...")
+			}
 		}
+	} else {
+		createHook(ctx, org, client)
 	}
-	// list hooks
-	for _, h := range hooks {
-		log.Println("hook:", *h.ID)
-	}
+
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"status": "ok",
 		})
 	})
-	r.POST("/label", func(c *gin.Context) {
-		// recieveWebHook()
+	r.POST("/webhook", func(c *gin.Context) {
+		prEvent := processPullRequestEvent(c)
+
+		// payload, err := github.ValidatePayload(r, s.webhookSecretKey)
+		// event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
+		// if err != nil {
+		// 	log.Fatal(err)
+		// }
+		// switch event := event.(type) {
+		// case *github.PullRequestEvent:
+		// 	proccessPullRequestEvent(event)
+		// }
 		c.JSON(200, gin.H{
 			"status": "ok",
+			"action": prEvent.Action,
 		})
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
