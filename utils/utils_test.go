@@ -1,7 +1,7 @@
 package utils_test
 
 import (
-	"github.com/google/go-github/github"
+	github "github.com/google/go-github/v32/github"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 	"github.com/secberus-oss/projector/utils"

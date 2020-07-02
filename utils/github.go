@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/google/go-github/github"
+	github "github.com/google/go-github/v32/github"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"golang.org/x/oauth2"
@@ -14,19 +14,24 @@ import (
 
 // GH encapsulates github client & metadata
 type GH struct {
-	c                *github.Client
-	org              string
-	ctx              context.Context
-	defaultProjectID int64
-	hookURL          string
+	c                 *github.Client
+	org               string
+	ctx               context.Context
+	defaultProjectID  int64
+	hookURL           string
+	Secret            []byte
+	defaultColumnID   *int64
+	defaultColumnName string
 }
 
 // NewGH creates a new instance of GH
 func NewGH() *GH {
 	gh := GH{
-		c:       initClient(),
-		org:     viper.GetString("org_name"),
-		hookURL: viper.GetString("hook_url"),
+		c:                 initClient(),
+		org:               viper.GetString("org_name"),
+		hookURL:           viper.GetString("hook_url"),
+		Secret:            []byte(viper.GetString("hook_secret")),
+		defaultColumnName: viper.GetString("default_column"),
 	}
 	return &gh
 }
@@ -164,4 +169,55 @@ func (g *GH) CreateHook() *github.Hook {
 		ctxtLog.Error("Unable to Create Hook in Org")
 	}
 	return hook
+}
+
+// ListProjectColumns gets all the columns of a project
+func (g *GH) ListProjectColumns() []*github.ProjectColumn {
+	ctx := context.Background()
+	columns, _, err := g.c.Projects.ListProjectColumns(ctx, g.defaultProjectID, &github.ListOptions{})
+	if err != nil {
+		log.Fatal("Unable to List columns in project ", err)
+		return nil
+	}
+	return columns
+}
+
+// GetCardColumnIDByName returns the ID of a column given a name
+func (g *GH) GetCardColumnIDByName(columns []*github.ProjectColumn, columnName string) *int64 {
+	for _, c := range columns {
+		log.Println("columns:", *c.Name)
+		if *c.Name == columnName {
+			return c.ID
+		}
+	}
+	log.Fatal("Unable to find column: ", columnName, "in project")
+	return nil
+}
+
+// CreatetProjectCard adds the Project to an Issue or PR
+func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
+	ctx := context.Background()
+	projectCardOptions := &github.ProjectCardOptions{
+		ContentID:   id,
+		ContentType: contentType,
+	}
+	card, _, err := g.c.Projects.CreateProjectCard(ctx, columnID, projectCardOptions)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Println(card)
+}
+
+// ProccessPullRequestEvent takes a PR event and performs actions on it
+func (g *GH) ProccessPullRequestEvent(e *github.PullRequestEvent) {
+	log.Println("Received PR Event!", *e.Action)
+	if *e.Action == "opened" {
+		g.defaultColumnID = g.GetCardColumnIDByName(g.ListProjectColumns(), g.defaultColumnName)
+		g.CreatetProjectCard("pull_request", *e.PullRequest.ID, *g.defaultColumnID)
+	}
+}
+
+// ProccessIssuesEvent takes a PR event and performs actions on it
+func (g *GH) ProccessIssuesEvent(e *github.IssuesEvent) {
+	log.Print("Received Issues Event! ")
 }
