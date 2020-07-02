@@ -6,44 +6,12 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/go-github/v32/github"
+	"github.com/secberus-oss/projector/utils"
 	"github.com/spf13/viper"
-	"golang.org/x/oauth2"
 )
 
-var hookURL string
 var projectID int64
 var columnID int64
-
-// createHook creates an organization hook to monitor Issues & PRs
-func createHook(ctx context.Context, org string, client *github.Client) {
-	log.Println("Creating Org Hook...")
-	hookEvents := []string{"pull_request", "issues"}
-	hookConfig := map[string]interface{}{
-		"url":          hookURL,
-		"content_type": "json",
-	}
-	hookOptions := &github.Hook{
-		Events: hookEvents,
-		Config: hookConfig,
-	}
-	hook, rsp, err := client.Organizations.CreateHook(ctx, org, hookOptions)
-	if rsp.StatusCode == 404 {
-		log.Println("Unauthorized...Increase Token Scope")
-		return
-	}
-	if err != nil {
-		log.Fatal("Unable to create Org Hook:", err)
-	}
-	log.Println("hook:", hook)
-}
-
-func hookExists(h github.Hook) bool {
-	log.Println("checking if", hookURL, "already created in", h)
-	if hookURL == h.Config["url"].(string) {
-		return true
-	}
-	return false
-}
 
 func createPullRequestProjectCard(ctx context.Context, client *github.Client, id int64, columnID int64) {
 	projectCardOptions := &github.ProjectCardOptions{
@@ -87,55 +55,11 @@ func proccessIssuesEvent(e *github.IssuesEvent) {
 func main() {
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
 	viper.AutomaticEnv()
-	hookURL = viper.GetString("hook_url")
-	org := viper.GetString("org_name")
-	ctx := context.Background()
-	ts := oauth2.StaticTokenSource(
-		&oauth2.Token{AccessToken: viper.GetString("github_token")},
-	)
-	tc := oauth2.NewClient(ctx, ts)
 
-	client := github.NewClient(tc)
-	//****************************************************************************
-	// list all repositories
-	//****************************************************************************
-	repos, _, err := client.Repositories.ListByOrg(ctx, org, nil)
-	if err != nil {
-		log.Fatal("Unable to List Repos in Org:", org, err)
-	}
-	for _, r := range repos {
-		log.Println("repo:", *r.Name)
-	}
-	//****************************************************************************
-	// list all projects
-	//****************************************************************************
-	projectOptions := &github.ProjectListOptions{State: "open"}
-	projects, _, err := client.Organizations.ListProjects(ctx, org, projectOptions)
-	if err != nil {
-		log.Fatal("Unable to List Projects in Org:", org, err)
-	}
-	for _, p := range projects {
-		log.Println("project:", *p.Name)
-		if *p.Name == viper.GetString("default_project") {
-			projectID = *p.ID
-		}
-	}
-	//****************************************************************************
-	// list all org hooks
-	//****************************************************************************
-	hooks, _, err := client.Organizations.ListHooks(ctx, org, nil)
-	if err != nil {
-		log.Fatal("Unable to List Hooks in Org:", org, err)
-	} else if len(hooks) > 0 {
-		for _, h := range hooks {
-			log.Println("hook:", *h)
-			if hookExists(*h) {
-				log.Println("Hook already created, skipping...")
-			}
-		}
-	} else {
-		createHook(ctx, org, client)
-	}
+	gh := utils.NewGH()
+	gh.ListRepos()
+	gh.ListProjects()
+	gh.ListHooks()
 
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) {
