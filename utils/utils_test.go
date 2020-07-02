@@ -9,7 +9,7 @@ import (
 )
 
 var _ = Describe("Utils", func() {
-	Describe("All Org Hooks", func() {
+	Describe("List All Org Hooks", func() {
 		var (
 			hook    *github.Hook
 			hooks   []*github.Hook
@@ -33,6 +33,12 @@ var _ = Describe("Utils", func() {
 			It("should not be recreated", func() {
 				viper.Set("hook_url", "http://www.test.com")
 				Expect(utils.NewGH().HookExists(hooks)).To(Equal(true))
+			})
+		})
+		Context("No hooks contain PRJ_HOOK_URL in its URL", func() {
+			It("should not be recreated", func() {
+				viper.Set("hook_url", "http://www.test1.com")
+				Expect(utils.NewGH().HookExists(hooks)).To(Equal(false))
 			})
 		})
 	})
