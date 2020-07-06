@@ -83,8 +83,8 @@ func (g *GH) GetDefaultProjectColumns() {
 	g.defaultColumns = g.ListProjectColumns(g.defaultProjectID)
 }
 
-// GetDefualtColumnID returns the id of the default column for new PRs/Issues
-func (g *GH) GetDefualtColumnID() {
+// GetDefaultColumnID returns the id of the default column for new PRs/Issues
+func (g *GH) GetDefaultColumnID() {
 	if v, ok := g.GetCardColumnIDByName(g.defaultColumns, g.defaultColumnName); ok {
 		//the value exists
 		g.defaultColumnID = v
@@ -178,7 +178,7 @@ func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
 // ProccessPullRequestEvent takes a PR event and performs actions on it
 func (g *GH) ProccessPullRequestEvent(e *github.PullRequestEvent) {
 	log.Println("Received PR Event!", *e.Action)
-	if *e.Action == "opened" {
+	if *e.Action == "opened" && *e.PullRequest.State == "open" {
 		log.Println("Processing Opened PR Event...")
 		log.Println("PR ID:", *e.PullRequest.ID)
 		log.Println("Project Column Name:", g.defaultColumnName, "Column ID: ", g.defaultColumnID, "Proj ID:", g.defaultProjectID)
