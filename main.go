@@ -30,11 +30,14 @@ func main() {
 	prj := NewPRJ()
 	viper.SetEnvPrefix("prj") // will be uppercased automatically
 	viper.AutomaticEnv()
-	viper.AllowEmptyEnv(true)
 
 	gh := utils.NewGH()
 	gh.ListRepos()
 	gh.ListProjects()
+	gh.GetDefaultProjectID()
+	gh.GetDefaultProjectColumns()
+	gh.GetDefualtColumnID()
+
 	if !gh.HookExists(gh.ListHooks()) {
 		gh.CreateHook()
 	}
@@ -50,6 +53,7 @@ func main() {
 		//log.Println(prEvent.Label)
 		payload, err := github.ValidatePayload(c.Request, gh.Secret)
 		event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
+
 		if err != nil {
 			log.Println(err)
 		}
