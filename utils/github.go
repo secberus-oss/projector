@@ -163,6 +163,17 @@ func (g *GH) GetCardColumnIDByName(columns []*github.ProjectColumn, columnName s
 	return 0, false
 }
 
+// ListProjectCards gets all the cards in a projects column
+func (g *GH) ListProjectCards(colID int64) []*github.ProjectCard {
+	ctx := context.Background()
+	cards, _, err := g.c.Projects.ListProjectCards(ctx, colID, &github.ProjectCardListOptions{})
+	if err != nil {
+		log.Fatal("Unable to list cards in project ", err)
+		return nil
+	}
+	return cards
+}
+
 // CreatetProjectCard adds the Project to an Issue or PR
 func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
 	log.Println("Creating project card...")

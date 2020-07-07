@@ -1,7 +1,6 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -80,14 +79,8 @@ func main() {
 		})
 	})
 	r.GET("/reports", func(c *gin.Context) {
-		reports, err := json.Marshal(prj.RunReports())
-		if err != nil {
-			log.Println(err)
-			c.JSON(500, gin.H{
-				"error": "Failed to Generate Report",
-			})
-		}
-		c.JSON(200, reports)
+		//log.Println(string(reports))
+		c.JSON(200, prj.RunReports())
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }
