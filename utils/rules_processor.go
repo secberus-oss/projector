@@ -107,7 +107,7 @@ func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 		for _, rule := range r.LabelRules {
 			if r.MatchesPRRuleConditions(rule, e) {
 				log.Print("Found a Rule that Matches an Event Condition")
-				projID := r.gh.GetProjectID(r.gh.ListProjects(), rule.Project)
+				projID := r.gh.GetProjectID(rule.Project)
 				columns := r.gh.ListProjectColumns(*projID)
 				if colID, ok := r.gh.GetCardColumnIDByName(columns, rule.Column); ok {
 					//the value exists

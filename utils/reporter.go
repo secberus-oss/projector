@@ -1,6 +1,10 @@
 package utils
 
-import github "github.com/google/go-github/v32/github"
+import (
+	"log"
+
+	github "github.com/google/go-github/v32/github"
+)
 
 // Reporter stores all reports and metadata
 type Reporter struct {
@@ -24,10 +28,12 @@ func NewReporter() *Reporter {
 
 // GenerateReports calls necessary functions to complete a report
 func (r *Reporter) GenerateReports(projects []*github.Project) {
+	log.Println("Reports Generating...")
 	for _, p := range projects {
 		report := Report{
 			ProjectBoard: *p.Name,
 		}
+		log.Println("Processing report for", p)
 		r.Reports = append(r.Reports, report)
 	}
 }

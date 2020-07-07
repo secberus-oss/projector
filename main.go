@@ -35,6 +35,7 @@ func (p *PRJ) CheckHealth() int {
 
 // RunReports used to run reports
 func (p *PRJ) RunReports() []utils.Report {
+	log.Print("Running Reports...")
 	r := utils.NewReporter()
 	r.GenerateReports(p.gh.Projects)
 	return r.Reports
@@ -43,10 +44,9 @@ func (p *PRJ) RunReports() []utils.Report {
 // loadConfig to get github things
 func (p *PRJ) loadConfig() {
 	p.gh.ListRepos()
-	projects := p.gh.ListProjects()
-	p.gh.DefaultProjectID = *p.gh.GetProjectID(projects, p.gh.DefaultProjectName)
+	p.gh.Projects = p.gh.ListProjects()
+	p.gh.DefaultProjectID = *p.gh.GetProjectID(p.gh.DefaultProjectName)
 	p.gh.GetDefaultProjectColumns()
-
 	if !p.gh.HookExists(p.gh.ListHooks()) {
 		p.gh.CreateHook()
 	}
@@ -65,7 +65,6 @@ func main() {
 		//log.Println(prEvent.Label)
 		payload, _ := github.ValidatePayload(c.Request, prj.gh.Secret)
 		event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
-
 		if err != nil {
 			log.Println(err)
 		}

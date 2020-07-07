@@ -70,8 +70,8 @@ func (g *GH) ListProjects() []*github.Project {
 }
 
 // GetProjectID gets the id of project to be added on all PRs/Issues by default
-func (g *GH) GetProjectID(projects []*github.Project, name string) *int64 {
-	for _, p := range projects {
+func (g *GH) GetProjectID(name string) *int64 {
+	for _, p := range g.Projects {
 		log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
 		if *p.Name == name {
 			log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
