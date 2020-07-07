@@ -1,30 +1,27 @@
 LabelRules:
-- name: PR Bugs Closed
-  description: Send PRs Labeled type: Bug to Bugs Board Closed Column
+- name: "PR Bugs Closed"
+  description: "Send PRs Labeled type: Bug to Bugs Board Closed Column"
   column: Closed
   label: "type: bug"
   project: Bugs
   state: closed
   content: PullRequest
-
-- name: Issue Bugs Closed
-  description: Send PRs Labeled type: Bug to Bugs Board Closed Column
+- name: "Issue Bugs Closed"
+  description: "Send PRs Labeled type: Bug to Bugs Board Closed Column"
   column: Closed
   label: "type: bug"
   project: Bugs
   state: closed
   content: Issue
-
 - name: PR Bugs Opened
-  description: Send PRs Labeled type: Bug to Bugs Board Triage Column
+  description: "Send PRs Labeled type: Bug to Bugs Board Triage Column"
   column: Needs triage
   label: "type: bug"
   project: Bugs
   state: open
   content: PullRequest
-
 - name: Issue Bugs Opened
-  description: Send PRs Labeled type: Bug to Bugs Board Triage Column
+  description: "Send PRs Labeled type: Bug to Bugs Board Triage Column"
   column: Needs triage
   label: "type: bug"
   project: Bugs
