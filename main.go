@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -30,6 +31,13 @@ func NewPRJ() *PRJ {
 // CheckHealth used to see if the service is up
 func (p *PRJ) CheckHealth() int {
 	return 200
+}
+
+// RunReports used to run reports
+func (p *PRJ) RunReports() []utils.Report {
+	r := utils.NewReporter()
+	r.GenerateReports(p.gh.Projects)
+	return r.Reports
 }
 
 // loadConfig to get github things
@@ -71,6 +79,16 @@ func main() {
 		c.JSON(200, gin.H{
 			"status": "ok",
 		})
+	})
+	r.GET("/reports", func(c *gin.Context) {
+		reports, err := json.Marshal(prj.RunReports())
+		if err != nil {
+			log.Println(err)
+			c.JSON(500, gin.H{
+				"error": "Failed to Generate Report",
+			})
+		}
+		c.JSON(200, reports)
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

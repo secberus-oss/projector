@@ -21,7 +21,7 @@ type GH struct {
 	defaultColumnID    int64
 	defaultColumnName  string
 	repos              []*github.Repository
-	projects           []*github.Project
+	Projects           []*github.Project
 	defaultColumns     []*github.ProjectColumn
 }
 
