@@ -11,27 +11,29 @@ import (
 
 // GH encapsulates github client & metadata
 type GH struct {
-	c                 *github.Client
-	org               string
-	ctx               context.Context
-	defaultProjectID  int64
-	hookURL           string
-	Secret            []byte
-	defaultColumnID   int64
-	defaultColumnName string
-	repos             []*github.Repository
-	projects          []*github.Project
-	defaultColumns    []*github.ProjectColumn
+	c                  *github.Client
+	org                string
+	ctx                context.Context
+	DefaultProjectName string
+	DefaultProjectID   int64
+	hookURL            string
+	Secret             []byte
+	defaultColumnID    int64
+	defaultColumnName  string
+	repos              []*github.Repository
+	projects           []*github.Project
+	defaultColumns     []*github.ProjectColumn
 }
 
 // NewGH creates a new instance of GH
 func NewGH() *GH {
 	gh := GH{
-		c:                 initClient(),
-		org:               viper.GetString("org_name"),
-		hookURL:           viper.GetString("hook_url"),
-		Secret:            []byte(viper.GetString("hook_secret")),
-		defaultColumnName: viper.GetString("default_column"),
+		c:                  initClient(),
+		org:                viper.GetString("org_name"),
+		hookURL:            viper.GetString("hook_url"),
+		Secret:             []byte(viper.GetString("hook_secret")),
+		defaultColumnName:  viper.GetString("default_column"),
+		DefaultProjectName: viper.GetString("default_project"),
 	}
 	return &gh
 }
@@ -57,30 +59,32 @@ func (g *GH) ListRepos() {
 }
 
 // ListProjects shows all the projects in an org
-func (g *GH) ListProjects() {
+func (g *GH) ListProjects() []*github.Project {
 	ctx := context.Background()
 	projectOptions := &github.ProjectListOptions{State: "open"}
 	projects, rsp, err := g.c.Organizations.ListProjects(ctx, g.org, projectOptions)
 	if err != nil {
 		log.Println("Unable to List Projects in Org", rsp, g.org, err)
 	}
-	g.projects = projects
+	return projects
 }
 
-// GetDefaultProjectID gets the id of project to be added on all PRs/Issues by default
-func (g *GH) GetDefaultProjectID() {
-	for _, p := range g.projects {
-		log.Println("project:", *p.Name)
-		if *p.Name == viper.GetString("default_project") {
-			g.defaultProjectID = *p.ID
-			log.Println("Default project ID:", *p.ID, "For Project: ", *p.Name)
+// GetProjectID gets the id of project to be added on all PRs/Issues by default
+func (g *GH) GetProjectID(projects []*github.Project, name string) *int64 {
+	for _, p := range projects {
+		log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
+		if *p.Name == name {
+			log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
+			return p.ID
 		}
 	}
+	log.Println("Couldn't Find Project ID for:", name)
+	return nil
 }
 
 // GetDefaultProjectColumns sets data for default project columns
 func (g *GH) GetDefaultProjectColumns() {
-	g.defaultColumns = g.ListProjectColumns(g.defaultProjectID)
+	g.defaultColumns = g.ListProjectColumns(g.DefaultProjectID)
 }
 
 // GetDefaultColumnID returns the id of the default column for new PRs/Issues
@@ -161,6 +165,7 @@ func (g *GH) GetCardColumnIDByName(columns []*github.ProjectColumn, columnName s
 
 // CreatetProjectCard adds the Project to an Issue or PR
 func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
+	log.Println("Creating project card...")
 	ctx := context.Background()
 	projectCardOptions := &github.ProjectCardOptions{
 		ContentID:   id,
@@ -177,11 +182,11 @@ func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
 
 // ProccessPullRequestEvent takes a PR event and performs actions on it
 func (g *GH) ProccessPullRequestEvent(e *github.PullRequestEvent) {
-	log.Println("Received PR Event!", *e.Action)
+	log.Println("Received PR Event! Action: ", *e.Action)
 	if *e.Action == "opened" && *e.PullRequest.State == "open" {
 		log.Println("Processing Opened PR Event...")
 		log.Println("PR ID:", *e.PullRequest.ID)
-		log.Println("Project Column Name:", g.defaultColumnName, "Column ID: ", g.defaultColumnID, "Proj ID:", g.defaultProjectID)
+		log.Println("Project Column Name:", g.defaultColumnName, "Column ID: ", g.defaultColumnID, "Proj ID:", g.DefaultProjectID)
 		g.CreatetProjectCard("PullRequest", *e.PullRequest.ID, g.defaultColumnID)
 	}
 }

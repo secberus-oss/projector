@@ -11,37 +11,42 @@ import (
 
 // PRJ stores projector metadata
 type PRJ struct {
-	status int
+	status        int
+	gh            *utils.GH
+	RuleProcessor *utils.RulesProcessor
 }
 
 // NewPRJ creates a new instance of PRJ
 func NewPRJ() *PRJ {
-	prj := PRJ{}
+	viper.SetEnvPrefix("prj") // will be uppercased automatically
+	viper.AutomaticEnv()
+	prj := PRJ{
+		gh:            utils.NewGH(),
+		RuleProcessor: utils.NewRulesProcessor(),
+	}
 	return &prj
 }
 
 // CheckHealth used to see if the service is up
-func (prj *PRJ) CheckHealth() int {
+func (p *PRJ) CheckHealth() int {
 	return 200
 }
 
-func main() {
+// loadConfig to get github things
+func (p *PRJ) loadConfig() {
+	p.gh.ListRepos()
+	projects := p.gh.ListProjects()
+	p.gh.DefaultProjectID = *p.gh.GetProjectID(projects, p.gh.DefaultProjectName)
+	p.gh.GetDefaultProjectColumns()
 
-	prj := NewPRJ()
-	viper.SetEnvPrefix("prj") // will be uppercased automatically
-	viper.AutomaticEnv()
-
-	gh := utils.NewGH()
-	gh.ListRepos()
-	gh.ListProjects()
-	gh.GetDefaultProjectID()
-	gh.GetDefaultProjectColumns()
-	gh.GetDefualtColumnID()
-
-	if !gh.HookExists(gh.ListHooks()) {
-		gh.CreateHook()
+	if !p.gh.HookExists(p.gh.ListHooks()) {
+		p.gh.CreateHook()
 	}
+}
 
+func main() {
+	prj := NewPRJ()
+	prj.loadConfig()
 	r := gin.Default()
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(prj.CheckHealth(), gin.H{
@@ -49,23 +54,22 @@ func main() {
 		})
 	})
 	r.POST("/webhook", func(c *gin.Context) {
-		//prEvent := proccessPullRequestEvent(c)
 		//log.Println(prEvent.Label)
-		payload, err := github.ValidatePayload(c.Request, gh.Secret)
+		payload, _ := github.ValidatePayload(c.Request, prj.gh.Secret)
 		event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
 
 		if err != nil {
 			log.Println(err)
 		}
+		prj.RuleProcessor.ProcessLabelRules(event)
 		switch event := event.(type) {
 		case *github.PullRequestEvent:
-			gh.ProccessPullRequestEvent(event)
+			prj.gh.ProccessPullRequestEvent(event)
 		case *github.IssuesEvent:
-			gh.ProccessIssuesEvent(event)
+			prj.gh.ProccessIssuesEvent(event)
 		}
 		c.JSON(200, gin.H{
 			"status": "ok",
-			"action": "test",
 		})
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")

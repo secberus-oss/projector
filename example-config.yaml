@@ -1,0 +1,7 @@
+Rules:
+- LabelRule:
+  - label: "type: bug"
+    project: "Bugs"
+    type: "PullRequest"
+    state: "closed"
+    column: "Closed"
