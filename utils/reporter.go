@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"errors"
 	"log"
 	"strconv"
 	"strings"
@@ -16,8 +17,9 @@ type Reporter struct {
 
 // Report shows all stats based on a project
 type Report struct {
-	ProjectBoard string        `json:"ProjectBoard"`
-	IssuesClosed string        `json:"IssuesClosed"`
+	ProjectBoard string `json:"ProjectBoard"`
+	IssuesClosed int    `json:"IssuesClosed"`
+	//PRsClosed    int           `json:"PRsClosed"`
 	LabelCounts  []*LabelCount `json:"LabelCounts"`
 	ProjectCards []*Card       `json:"ProjectCards"`
 }
@@ -25,12 +27,12 @@ type Report struct {
 // Card extends github cards to store type
 type Card struct {
 	github.ProjectCard
-	ContentType      string                   `json:"ContentType"`
-	Repo             string                   `json:"Repo"`
-	Number           int                      `json:"Number"`
-	Name             string                   `json:"Name"`
-	PullRequestLinks *github.PullRequestLinks `json:"PullRequest,omitempty"`
-	Labels           []*github.Label          `json:"Labels,omitempty"`
+	ContentType    string          `json:"ContentType"`
+	Repo           string          `json:"Repo"`
+	Number         int             `json:"Number"`
+	Name           string          `json:"Name"`
+	PullRequestURL *string         `json:"PullRequestURL,omitempty"`
+	Labels         []*github.Label `json:"Labels,omitempty"`
 }
 
 // LabelCount keeps  track of all issues with labels
@@ -55,7 +57,8 @@ func (r *Reporter) GenerateReports(projects []*github.Project) {
 		cardsWithMetadata := r.GetContentTypes(cardsDone)
 		report := Report{
 			ProjectBoard: *p.Name,
-			IssuesClosed: strconv.Itoa(len(cardsDone)),
+			IssuesClosed: len(cardsDone),
+			//PRsClosed:    r.GetPRsClosed(cardsWithMetadata),
 			LabelCounts:  r.GetLabelCount(cardsWithMetadata),
 			ProjectCards: cardsWithMetadata,
 		}
@@ -86,19 +89,19 @@ func (r *Reporter) GetContentTypes(cards []*github.ProjectCard) []*Card {
 		var card = Card{ProjectCard: *c}
 		if c.ContentURL != nil {
 			var card = Card{ProjectCard: *c}
-			stripedContent := strings.Replace(*c.ContentURL, "https://api.github.com/repos/"+r.GH.org+"/", "", -1)
-			s := strings.Split(stripedContent, "/issues/")
-			number, err := strconv.Atoi(s[1])
+			repo, contentType, number, err := r.StripContentURL(*c.ContentURL)
 			if err != nil {
-				log.Println("Error: converting Number from Card into String")
+				log.Printf("Error Parsing URL")
 			}
-			card.Number = number
-			card.Repo = s[0]
+			card.Number = *number
+			card.Repo = *repo
 			if issue, ok := r.isIssue(&card); ok {
-				card.ContentType = "Issue"
+				card.ContentType = *contentType
 				card.Name = *issue.Title
 				card.Labels = issue.Labels
-				card.PullRequestLinks = issue.PullRequestLinks
+				if issue.PullRequestLinks != nil {
+					card.PullRequestURL = issue.PullRequestLinks.URL
+				}
 			}
 			cardsWithType = append(cardsWithType, &card)
 		} else {
@@ -135,14 +138,14 @@ func (r *Reporter) GetLabelCount(cards []*Card) []*LabelCount {
 				Name:  l.Name,
 				Count: 1,
 			}
-			labelCounts = AppendIfMissing(labelCounts, lc)
+			labelCounts = r.AppendIfMissing(labelCounts, lc)
 		}
 	}
 	return labelCounts
 }
 
 // AppendIfMissing counts labels
-func AppendIfMissing(slice []*LabelCount, i *LabelCount) []*LabelCount {
+func (r *Reporter) AppendIfMissing(slice []*LabelCount, i *LabelCount) []*LabelCount {
 	for _, ele := range slice {
 		if *ele.Name == *i.Name {
 			ele.Count++
@@ -150,4 +153,28 @@ func AppendIfMissing(slice []*LabelCount, i *LabelCount) []*LabelCount {
 		}
 	}
 	return append(slice, i)
+}
+
+// StripContentURL strips an api url for data
+func (r *Reporter) StripContentURL(s string) (*string, *string, *int, error) {
+	stripedContent := strings.Replace(s, "https://api.github.com/repos/"+r.GH.org+"/", "", -1)
+	sc := strings.Split(stripedContent, "/")
+	repo := sc[0]
+	contentType := sc[1]
+	number, err := strconv.Atoi(sc[2])
+	if err != nil {
+		return nil, nil, nil, errors.New("Issue/PR Number Conversion Error")
+	}
+	return &repo, &contentType, &number, nil
+}
+
+// GetPRsClosed counts all PRs in card data
+func (r *Reporter) GetPRsClosed(cards []*Card) int {
+	count := 0
+	for _, c := range cards {
+		if &c.PullRequestURL != nil {
+			count++
+		}
+	}
+	return count
 }
