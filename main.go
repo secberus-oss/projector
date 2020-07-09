@@ -42,8 +42,6 @@ func (p *PRJ) RunReports() []utils.Report {
 
 // loadConfig to get github things
 func (p *PRJ) loadConfig() {
-	p.gh.ListRepos()
-	p.gh.Projects = p.gh.ListProjects()
 	p.gh.DefaultProjectID = *p.gh.GetProjectID(p.gh.DefaultProjectName)
 	p.gh.GetDefaultProjectColumns()
 	if !p.gh.HookExists(p.gh.ListHooks()) {

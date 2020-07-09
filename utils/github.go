@@ -35,6 +35,8 @@ func NewGH() *GH {
 		defaultColumnName:  viper.GetString("default_column"),
 		DefaultProjectName: viper.GetString("default_project"),
 	}
+	gh.Projects = gh.ListProjects()
+	gh.ListRepos()
 	return &gh
 }
 
@@ -78,7 +80,7 @@ func (g *GH) GetProjectID(name string) *int64 {
 			return p.ID
 		}
 	}
-	log.Println("Couldn't Find Project ID for:", name)
+	log.Println("Couldn't Find Project ID for:", name, g.Projects)
 	return nil
 }
 
