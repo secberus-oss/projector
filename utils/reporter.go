@@ -55,7 +55,7 @@ func (r *Reporter) GenerateReports(projects []*github.Project) {
 		cardsWithMetadata := r.GetContentTypes(cardsDone)
 		report := Report{
 			ProjectBoard: *p.Name,
-			//ProjectCards: cardsWithMetadata,
+			ProjectCards: cardsWithMetadata,
 			IssuesClosed: strconv.Itoa(len(cardsDone)),
 		}
 		report.LabelCounts = r.GetLabelCount(cardsWithMetadata)
