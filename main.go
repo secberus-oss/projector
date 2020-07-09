@@ -32,13 +32,18 @@ func (p *PRJ) CheckHealth() int {
 	return 200
 }
 
+// RunReports used to run reports
+func (p *PRJ) RunReports() []utils.Report {
+	log.Print("Running Reports...")
+	r := utils.NewReporter()
+	r.GenerateReports(p.gh.Projects)
+	return r.Reports
+}
+
 // loadConfig to get github things
 func (p *PRJ) loadConfig() {
-	p.gh.ListRepos()
-	projects := p.gh.ListProjects()
-	p.gh.DefaultProjectID = *p.gh.GetProjectID(projects, p.gh.DefaultProjectName)
+	p.gh.DefaultProjectID = *p.gh.GetProjectID(p.gh.DefaultProjectName)
 	p.gh.GetDefaultProjectColumns()
-
 	if !p.gh.HookExists(p.gh.ListHooks()) {
 		p.gh.CreateHook()
 	}
@@ -57,7 +62,6 @@ func main() {
 		//log.Println(prEvent.Label)
 		payload, _ := github.ValidatePayload(c.Request, prj.gh.Secret)
 		event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
-
 		if err != nil {
 			log.Println(err)
 		}
@@ -71,6 +75,10 @@ func main() {
 		c.JSON(200, gin.H{
 			"status": "ok",
 		})
+	})
+	r.GET("/reports", func(c *gin.Context) {
+		//log.Println(string(reports))
+		c.JSON(200, prj.RunReports())
 	})
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
 }

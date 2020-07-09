@@ -21,7 +21,7 @@ type GH struct {
 	defaultColumnID    int64
 	defaultColumnName  string
 	repos              []*github.Repository
-	projects           []*github.Project
+	Projects           []*github.Project
 	defaultColumns     []*github.ProjectColumn
 }
 
@@ -35,6 +35,8 @@ func NewGH() *GH {
 		defaultColumnName:  viper.GetString("default_column"),
 		DefaultProjectName: viper.GetString("default_project"),
 	}
+	gh.Projects = gh.ListProjects()
+	gh.ListRepos()
 	return &gh
 }
 
@@ -70,15 +72,15 @@ func (g *GH) ListProjects() []*github.Project {
 }
 
 // GetProjectID gets the id of project to be added on all PRs/Issues by default
-func (g *GH) GetProjectID(projects []*github.Project, name string) *int64 {
-	for _, p := range projects {
+func (g *GH) GetProjectID(name string) *int64 {
+	for _, p := range g.Projects {
 		log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
 		if *p.Name == name {
 			log.Println("Found Project ID:", *p.ID, "For Project:", *p.Name)
 			return p.ID
 		}
 	}
-	log.Println("Couldn't Find Project ID for:", name)
+	log.Println("Couldn't Find Project ID for:", name, g.Projects)
 	return nil
 }
 
@@ -163,6 +165,17 @@ func (g *GH) GetCardColumnIDByName(columns []*github.ProjectColumn, columnName s
 	return 0, false
 }
 
+// ListProjectCards gets all the cards in a projects column
+func (g *GH) ListProjectCards(colID int64) []*github.ProjectCard {
+	ctx := context.Background()
+	cards, _, err := g.c.Projects.ListProjectCards(ctx, colID, &github.ProjectCardListOptions{})
+	if err != nil {
+		log.Fatal("Unable to list cards in project ", err)
+		return nil
+	}
+	return cards
+}
+
 // CreatetProjectCard adds the Project to an Issue or PR
 func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
 	log.Println("Creating project card...")
@@ -197,4 +210,26 @@ func (g *GH) ProccessIssuesEvent(e *github.IssuesEvent) {
 	if *e.Action == "opened" {
 		g.CreatetProjectCard("Issue", *e.Issue.ID, g.defaultColumnID)
 	}
+}
+
+// GetPR gets PR data
+func (g *GH) GetPR(repo string, number int) (*github.PullRequest, *github.Response) {
+	ctx := context.Background()
+	pr, rsp, err := g.c.PullRequests.Get(ctx, g.org, repo, number)
+	if err != nil {
+		log.Println("Error Retrieving PR")
+		return nil, rsp
+	}
+	return pr, rsp
+}
+
+// GetIssue gets issue data
+func (g *GH) GetIssue(repo string, number int) (*github.Issue, *github.Response) {
+	ctx := context.Background()
+	i, rsp, err := g.c.Issues.Get(ctx, g.org, repo, number)
+	if err != nil {
+		log.Println("Error Retrieving Issue")
+		return nil, rsp
+	}
+	return i, rsp
 }
