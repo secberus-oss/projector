@@ -209,3 +209,25 @@ func (g *GH) ProccessIssuesEvent(e *github.IssuesEvent) {
 		g.CreatetProjectCard("Issue", *e.Issue.ID, g.defaultColumnID)
 	}
 }
+
+// GetPR gets PR data
+func (g *GH) GetPR(repo string, number int) (*github.PullRequest, *github.Response) {
+	ctx := context.Background()
+	pr, rsp, err := g.c.PullRequests.Get(ctx, g.org, repo, number)
+	if err != nil {
+		log.Println("Error Retrieving PR")
+		return nil, rsp
+	}
+	return pr, rsp
+}
+
+// GetIssue gets issue data
+func (g *GH) GetIssue(repo string, number int) (*github.Issue, *github.Response) {
+	ctx := context.Background()
+	i, rsp, err := g.c.Issues.Get(ctx, g.org, repo, number)
+	if err != nil {
+		log.Println("Error Retrieving Issue")
+		return nil, rsp
+	}
+	return i, rsp
+}
