@@ -7,7 +7,7 @@ test:
 	go test -v ./... -cover
 
 docker:
-	docker build -t feelobot/projector:${IMAGE_VERSION} .
+	docker build -t secberusoss/projector:${IMAGE_VERSION} .
 
 admin:org_hook
 admin:repo_hook
