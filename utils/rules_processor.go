@@ -55,16 +55,16 @@ func (r *RulesProcessor) LoadRulesConfig() {
 
 // MatchesPRRuleConditions make sure the rule has all its conditions met
 func (r *RulesProcessor) MatchesPRRuleConditions(rule LabelRule, e *github.PullRequestEvent) bool {
-	if typeCheck := strings.Contains(reflect.TypeOf(e).String(), rule.Content); typeCheck != true {
-		log.Println("Content Type Condition Check Failed")
+	if !strings.Contains(reflect.TypeOf(e).String(), rule.Content) {
+		log.Println("Content Type Condition Check Failed", rule)
 		return false
 	}
 	if *e.PullRequest.State != rule.State {
 		log.Println("State Condition Check Failed")
 		return false
 	}
-	if r.HasLabels(rule, e.PullRequest.Labels) != true {
-		log.Println("Label Condition Check Failed")
+	if e.Label == nil || rule.Label != *e.Label.Name {
+		log.Println("Label Condition Check Failed", rule)
 		return false
 	}
 	log.Println("All Condition Checks Passed!!")
@@ -73,26 +73,20 @@ func (r *RulesProcessor) MatchesPRRuleConditions(rule LabelRule, e *github.PullR
 
 // MatchesIssueConditions make sure the rule has all its conditions met
 func (r *RulesProcessor) MatchesIssueConditions(rule LabelRule, e *github.IssuesEvent) bool {
-	if typeCheck := strings.Contains(reflect.TypeOf(e).String(), rule.Content); typeCheck != true {
+	if !strings.Contains(reflect.TypeOf(e).String(), rule.Content) {
+		log.Println("Content Type Condition Check Failed", rule)
 		return false
 	}
 	if *e.Issue.State != rule.State {
+		log.Println("State Condition Check Failed", rule)
 		return false
 	}
-	if r.HasLabels(rule, e.Issue.Labels) != true {
+	if e.Label == nil || rule.Label != *e.Label.Name {
+		log.Println("Label Condition Check Failed", rule)
 		return false
 	}
+	log.Println("All Condition Checks Passed!!", rule)
 	return true
-}
-
-// HasLabels check
-func (r *RulesProcessor) HasLabels(rule LabelRule, labels []*github.Label) bool {
-	for _, l := range labels {
-		if rule.Label == *l.Name {
-			return true
-		}
-	}
-	return false
 }
 
 // ProcessLabelRules so we can automate the things
@@ -118,16 +112,17 @@ func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 			}
 		}
 	case *github.IssuesEvent:
-		log.Print("received an Issue to process label rules", e)
+		log.Print("received an Issue to process label rules")
 		if *e.Action != "labeled" && *e.Action != "unlabeled" {
 			log.Println("Ignoring issue action", *e.Action)
 			return
 		}
 		for _, rule := range r.LabelRules {
 			if r.MatchesIssueConditions(rule, e) {
-				log.Print("Found a Rule that Matches an Event Condition")
+				log.Println("Found a Rule that Matches an Event Condition")
 				projID := r.gh.GetProjectID(rule.Project)
 				columns := r.gh.ListProjectColumns(*projID)
+
 				if colID, ok := r.gh.GetCardColumnIDByName(columns, rule.Column); ok {
 					//the value exists
 					if *e.Action == "labeled" {
