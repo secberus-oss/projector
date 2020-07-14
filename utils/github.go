@@ -3,6 +3,8 @@ package utils
 import (
 	"context"
 	"log"
+	"strconv"
+	"strings"
 
 	github "github.com/google/go-github/v32/github"
 	"github.com/spf13/viper"
@@ -176,8 +178,22 @@ func (g *GH) ListProjectCards(colID int64) []*github.ProjectCard {
 	return cards
 }
 
-// CreatetProjectCard adds the Project to an Issue or PR
-func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
+func (g *GH) GetProjectCardByIssue(issue github.Issue, repoName string, prjID int64) *github.ProjectCard {
+	columns := g.ListProjectColumns(prjID)
+	for _, col := range columns {
+		cards := g.ListProjectCards(*col.ID)
+		for _, card := range cards {
+			u := strings.Split(*card.ContentURL, "/")
+			if u[len(u) -1] == strconv.Itoa(*issue.Number) && u[len(u) -3] == repoName {
+				return card
+			}
+		}
+	}
+	return nil
+}
+
+// CreateProjectCard adds the Project to an Issue or PR
+func (g *GH) CreateProjectCard(contentType string, id int64, columnID int64) {
 	log.Println("Creating project card...")
 	ctx := context.Background()
 	projectCardOptions := &github.ProjectCardOptions{
@@ -193,6 +209,19 @@ func (g *GH) CreatetProjectCard(contentType string, id int64, columnID int64) {
 	}
 }
 
+// DeleteProjectCard deletes a Project Card given the issue id and label
+func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, repoName string, projectName string) {
+	log.Println("Deleting Project Card")
+	ctx := context.Background()
+	projectID := g.GetProjectID(projectName)
+	card := g.GetProjectCardByIssue(issue, repoName, *projectID)
+	if card == nil {
+		log.Print("There is no card to delete for issue #", issue.ID)
+		return
+	}
+	g.c.Projects.DeleteProjectCard(ctx, *card.ID)
+}
+
 // ProccessPullRequestEvent takes a PR event and performs actions on it
 func (g *GH) ProccessPullRequestEvent(e *github.PullRequestEvent) {
 	log.Println("Received PR Event! Action: ", *e.Action)
@@ -200,15 +229,15 @@ func (g *GH) ProccessPullRequestEvent(e *github.PullRequestEvent) {
 		log.Println("Processing Opened PR Event...")
 		log.Println("PR ID:", *e.PullRequest.ID)
 		log.Println("Project Column Name:", g.defaultColumnName, "Column ID: ", g.defaultColumnID, "Proj ID:", g.DefaultProjectID)
-		g.CreatetProjectCard("PullRequest", *e.PullRequest.ID, g.defaultColumnID)
+		g.CreateProjectCard("PullRequest", *e.PullRequest.ID, g.defaultColumnID)
 	}
 }
 
-// ProccessIssuesEvent takes a PR event and performs actions on it
+// ProccessIssuesEvent takes an Issue event and performs actions on it
 func (g *GH) ProccessIssuesEvent(e *github.IssuesEvent) {
 	log.Print("Received Issues Event! ")
 	if *e.Action == "opened" {
-		g.CreatetProjectCard("Issue", *e.Issue.ID, g.defaultColumnID)
+		g.CreateProjectCard("Issue", *e.Issue.ID, g.defaultColumnID)
 	}
 }
 
