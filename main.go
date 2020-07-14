@@ -44,6 +44,7 @@ func (p *PRJ) RunReports() []utils.Report {
 func (p *PRJ) loadConfig() {
 	p.gh.DefaultProjectID = *p.gh.GetProjectID(p.gh.DefaultProjectName)
 	p.gh.GetDefaultProjectColumns()
+	p.gh.GetDefaultColumnID()
 	if !p.gh.HookExists(p.gh.ListHooks()) {
 		p.gh.CreateHook()
 	}
