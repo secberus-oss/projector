@@ -120,7 +120,7 @@ func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 	case *github.IssuesEvent:
 		log.Print("received an Issue to process label rules", e)
 		if *e.Action != "labeled" && *e.Action != "unlabeled" {
-			log.Println(*e.Action)
+			log.Println("Ignoring issue action", *e.Action)
 			return
 		}
 		for _, rule := range r.LabelRules {
@@ -133,7 +133,7 @@ func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 					if *e.Action == "labeled" {
 						r.gh.CreateProjectCard(rule.Content, *e.Issue.ID, colID)
 					} else {
-						r.gh.DeleteProjectIssueCard(rule.Content, *e.Issue, rule.Project)
+						r.gh.DeleteProjectIssueCard(rule.Content, *e.Issue, *e.Repo.Name, rule.Project)
 					}
 				} else {
 					log.Print("Unable to get Column ID")

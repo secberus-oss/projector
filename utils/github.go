@@ -178,13 +178,13 @@ func (g *GH) ListProjectCards(colID int64) []*github.ProjectCard {
 	return cards
 }
 
-func (g *GH) GetProjectCardByIssue(issue github.Issue, prjID int64) *github.ProjectCard {
+func (g *GH) GetProjectCardByIssue(issue github.Issue, repoName string, prjID int64) *github.ProjectCard {
 	columns := g.ListProjectColumns(prjID)
 	for _, col := range columns {
 		cards := g.ListProjectCards(*col.ID)
 		for _, card := range cards {
 			u := strings.Split(*card.ContentURL, "/")
-			if u[len(u) -1] == strconv.Itoa(*issue.Number) && u[len(u) -3] == *issue.Repository.Name {
+			if u[len(u) -1] == strconv.Itoa(*issue.Number) && u[len(u) -3] == repoName {
 				return card
 			}
 		}
@@ -210,11 +210,11 @@ func (g *GH) CreateProjectCard(contentType string, id int64, columnID int64) {
 }
 
 // DeleteProjectCard deletes a Project Card given the issue id and label
-func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, project_name string) {
+func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, repoName string, projectName string) {
 	log.Println("Deleting Project Card")
 	ctx := context.Background()
-	projectID := g.GetProjectID(project_name)
-	card := g.GetProjectCardByIssue(issue, *projectID)
+	projectID := g.GetProjectID(projectName)
+	card := g.GetProjectCardByIssue(issue, repoName, *projectID)
 	if card == nil {
 		log.Print("There is no card to delete for issue #", issue.ID)
 		return
