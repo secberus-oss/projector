@@ -59,7 +59,6 @@ func main() {
 		})
 	})
 	r.POST("/webhook", func(c *gin.Context) {
-		//log.Println(prEvent.Label)
 		payload, _ := github.ValidatePayload(c.Request, prj.gh.Secret)
 		event, err := github.ParseWebHook(github.WebHookType(c.Request), payload)
 		if err != nil {

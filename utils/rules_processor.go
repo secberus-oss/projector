@@ -111,14 +111,34 @@ func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 				columns := r.gh.ListProjectColumns(*projID)
 				if colID, ok := r.gh.GetCardColumnIDByName(columns, rule.Column); ok {
 					//the value exists
-					r.gh.CreatetProjectCard(rule.Content, *e.PullRequest.ID, colID)
+					r.gh.CreateProjectCard(rule.Content, *e.PullRequest.ID, colID)
 				} else {
 					log.Print("Unable to get Column ID")
 				}
 			}
 		}
-
 	case *github.IssuesEvent:
 		log.Print("received an Issue to process label rules", e)
+		if *e.Action != "labeled" && *e.Action != "unlabeled" {
+			log.Println(*e.Action)
+			return
+		}
+		for _, rule := range r.LabelRules {
+			if r.MatchesIssueConditions(rule, e) {
+				log.Print("Found a Rule that Matches an Event Condition")
+				projID := r.gh.GetProjectID(rule.Project)
+				columns := r.gh.ListProjectColumns(*projID)
+				if colID, ok := r.gh.GetCardColumnIDByName(columns, rule.Column); ok {
+					//the value exists
+					if *e.Action == "labeled" {
+						r.gh.CreateProjectCard(rule.Content, *e.Issue.ID, colID)
+					} else {
+						r.gh.DeleteProjectIssueCard(rule.Content, *e.Issue, rule.Project)
+					}
+				} else {
+					log.Print("Unable to get Column ID")
+				}
+			}
+		}
 	}
 }
