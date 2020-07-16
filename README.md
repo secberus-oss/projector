@@ -11,6 +11,7 @@ A github bot for managing projects.
 
 1. Generate label based reports.
 
+```json
 [
     {
         "ProjectBoard": "Kanban",
