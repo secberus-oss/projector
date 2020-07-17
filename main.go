@@ -54,7 +54,7 @@ func main() {
 	prj := NewPRJ()
 	prj.loadConfig()
 	r := gin.Default()
-	r.GET("/health", func(c *gin.Context) {
+	r.GET("/", func(c *gin.Context) {
 		c.JSON(prj.CheckHealth(), gin.H{
 			"status": "ok",
 		})
