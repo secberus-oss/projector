@@ -7,7 +7,4 @@ test:
 	go test -v ./... -cover
 
 docker:
-	docker build -t secberusoss/projector:${IMAGE_VERSION} .
-
-admin:org_hook
-admin:repo_hook
+	docker build -t secberus/projector:${IMAGE_VERSION} .

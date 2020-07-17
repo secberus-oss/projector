@@ -43,8 +43,9 @@ func (r *RulesProcessor) LoadRulesConfig() {
 	log.Println("Loading rules config...")
 	r.rc.SetConfigName(".prj") // name of config file (without extension)
 	r.rc.SetConfigType("yaml")
+	r.rc.AddConfigPath("/etc/config/")
+	r.rc.AddConfigPath("$HOME/")
 	r.rc.AddConfigPath(".")
-	r.rc.AddConfigPath("$HOME/.prj")
 	err := r.rc.ReadInConfig() // Find and read the config file
 	if err != nil {            // Handle errors reading the config file
 		log.Println("Error reading config file:", err)
