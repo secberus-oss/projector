@@ -11,7 +11,6 @@ import (
 
 // PRJ stores projector metadata
 type PRJ struct {
-	status        int
 	gh            *utils.GH
 	RuleProcessor *utils.RulesProcessor
 }
