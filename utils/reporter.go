@@ -111,13 +111,6 @@ func (r *Reporter) GetContentTypes(cards []*github.ProjectCard) []*Card {
 	return cardsWithType
 }
 
-func (r *Reporter) isPR(card *Card) (*github.PullRequest, bool) {
-	pr, _ := r.GH.GetPR(card.Repo, card.Number)
-	if pr != nil && *pr.State == "closed" {
-		return pr, true
-	}
-	return nil, false
-}
 
 func (r *Reporter) isIssue(card *Card) (*github.Issue, bool) {
 	i, _ := r.GH.GetIssue(card.Repo, card.Number)
