@@ -94,7 +94,10 @@ func (r *RulesProcessor) MatchesIssueConditions(rule LabelRule, e *github.Issues
 func (r *RulesProcessor) ProcessLabelRules(e interface{}) {
 	labelRules := r.rc.Get("LabelRules")
 	lRMap := labelRules.([]interface{})
-	mapstructure.Decode(lRMap, &r.LabelRules)
+	err := mapstructure.Decode(lRMap, &r.LabelRules)
+	if err != nil {
+		log.Print("Error Decoding Mapstructure")
+	}
 	log.Print("Found Rules", r.LabelRules)
 	switch e := e.(type) {
 	case *github.PullRequestEvent:
