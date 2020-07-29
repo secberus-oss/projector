@@ -219,7 +219,7 @@ func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, repo
 		log.Print("There is no card to delete for issue #", issue.ID)
 		return
 	}
-	resp, err := g.c.Projects.DeleteProjectCard(ctx, *card.ID)
+	_, err := g.c.Projects.DeleteProjectCard(ctx, *card.ID)
 	if err != nil {
  		log.Print("Error Deleting Card",*card.ID)
 	}
