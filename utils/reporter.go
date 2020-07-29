@@ -58,7 +58,6 @@ func (r *Reporter) GenerateReports(projects []*github.Project) {
 		report := Report{
 			ProjectBoard: *p.Name,
 			IssuesClosed: len(cardsDone),
-			//PRsClosed:    r.GetPRsClosed(cardsWithMetadata),
 			LabelCounts:  r.GetLabelCount(cardsWithMetadata),
 			ProjectCards: cardsWithMetadata,
 		}
@@ -111,13 +110,6 @@ func (r *Reporter) GetContentTypes(cards []*github.ProjectCard) []*Card {
 	return cardsWithType
 }
 
-func (r *Reporter) isPR(card *Card) (*github.PullRequest, bool) {
-	pr, _ := r.GH.GetPR(card.Repo, card.Number)
-	if pr != nil && *pr.State == "closed" {
-		return pr, true
-	}
-	return nil, false
-}
 
 func (r *Reporter) isIssue(card *Card) (*github.Issue, bool) {
 	i, _ := r.GH.GetIssue(card.Repo, card.Number)
@@ -166,15 +158,4 @@ func (r *Reporter) StripContentURL(s string) (*string, *string, *int, error) {
 		return nil, nil, nil, errors.New("Issue/PR Number Conversion Error")
 	}
 	return &repo, &contentType, &number, nil
-}
-
-// GetPRsClosed counts all PRs in card data
-func (r *Reporter) GetPRsClosed(cards []*Card) int {
-	count := 0
-	for _, c := range cards {
-		if &c.PullRequestURL != nil {
-			count++
-		}
-	}
-	return count
 }

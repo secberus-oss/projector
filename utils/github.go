@@ -15,7 +15,6 @@ import (
 type GH struct {
 	c                  *github.Client
 	org                string
-	ctx                context.Context
 	DefaultProjectName string
 	DefaultProjectID   int64
 	hookURL            string
@@ -219,7 +218,10 @@ func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, repo
 		log.Print("There is no card to delete for issue #", issue.ID)
 		return
 	}
-	g.c.Projects.DeleteProjectCard(ctx, *card.ID)
+	_, err := g.c.Projects.DeleteProjectCard(ctx, *card.ID)
+	if err != nil {
+ 		log.Print("Error Deleting Card",*card.ID)
+	}
 }
 
 // ProccessPullRequestEvent takes a PR event and performs actions on it
