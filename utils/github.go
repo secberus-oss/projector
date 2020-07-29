@@ -219,7 +219,10 @@ func (g *GH) DeleteProjectIssueCard(contentType string, issue github.Issue, repo
 		log.Print("There is no card to delete for issue #", issue.ID)
 		return
 	}
-	g.c.Projects.DeleteProjectCard(ctx, *card.ID)
+	resp, err := g.c.Projects.DeleteProjectCard(ctx, *card.ID)rule.Project)
+	if err != nil {
+ 		log.Print("Error Deleting Card",*card.ID)
+	}
 }
 
 // ProccessPullRequestEvent takes a PR event and performs actions on it
