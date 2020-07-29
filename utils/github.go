@@ -15,7 +15,6 @@ import (
 type GH struct {
 	c                  *github.Client
 	org                string
-	ctx                context.Context
 	DefaultProjectName string
 	DefaultProjectID   int64
 	hookURL            string
