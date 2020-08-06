@@ -5,6 +5,7 @@ import (
 	"log"
 	"strconv"
 	"strings"
+	"sync"
 
 	github "github.com/google/go-github/v32/github"
 )
@@ -52,18 +53,28 @@ func NewReporter() *Reporter {
 // GenerateReports calls necessary functions to complete a report
 func (r *Reporter) GenerateReports(projects []*github.Project) {
 	log.Println("Reports Generating...")
+	var wg sync.WaitGroup
+
 	for _, p := range projects {
-		cardsDone := r.GetProjectCardsFromColumn(*p.ID, "Done")
-		cardsWithMetadata := r.GetContentTypes(cardsDone)
-		report := Report{
-			ProjectBoard: *p.Name,
-			IssuesClosed: len(cardsDone),
-			LabelCounts:  r.GetLabelCount(cardsWithMetadata),
-			ProjectCards: cardsWithMetadata,
-		}
-		log.Println("Processing report for", *p.Name)
-		r.Reports = append(r.Reports, report)
+		wg.Add(1)
+		go r.GenerateReport(p, &wg)
 	}
+	wg.Wait()
+}
+
+// GenerateReport calls necessary functions to complete a report
+func (r *Reporter) GenerateReport(project *github.Project, wg *sync.WaitGroup) {
+	cardsDone := r.GetProjectCardsFromColumn(*project.ID, "Done")
+	cardsWithMetadata := r.GetContentTypes(cardsDone)
+	report := Report{
+		ProjectBoard: *project.Name,
+		IssuesClosed: len(cardsDone),
+		LabelCounts:  r.GetLabelCount(cardsWithMetadata),
+		ProjectCards: cardsWithMetadata,
+	}
+	log.Println("Processing report for", *project.Name)
+	r.Reports = append(r.Reports, report)
+	defer wg.Done()
 }
 
 // GetProjectCardsFromColumn Gets all the cards for a Project
