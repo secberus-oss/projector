@@ -3,7 +3,7 @@ module github.com/secberus-oss/projector
 go 1.14
 
 require (
-	github.com/gin-gonic/gin v1.6.3
+	github.com/gin-gonic/gin v1.7.7
 	github.com/google/go-github/v32 v32.0.0
 	github.com/mitchellh/mapstructure v1.1.2
 	github.com/onsi/ginkgo v1.14.0
